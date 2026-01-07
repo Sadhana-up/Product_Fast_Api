@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Products UI</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <h1>Products</h1>
+    <div>
+      <button onclick="loadProducts()">Refresh</button>
+    </div>
+    <table id="products-table">
+      <thead><tr><th>ID</th><th>Name</th><th>Description</th><th>Price</th><th>Qty</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <h2>Add / Update Product</h2>
+    <form id="product-form" onsubmit="submitForm(event)">
+      <label>ID <input type="number" id="p-id" required /></label><br/>
+      <label>Name <input id="p-name" required /></label><br/>
+      <label>Description <input id="p-desc" /></label><br/>
+      <label>Price <input type="number" step="0.01" id="p-price" required /></label><br/>
+      <label>Quantity <input type="number" id="p-qty" required /></label><br/>
+      <button type="submit">Submit</button>
+      <button type="button" onclick="resetForm()">Reset</button>
+    </form>
+
+    <script>
+      async function loadProducts(){
+        const res = await fetch('/products');
+        const data = await res.json();
+        const tbody = document.querySelector('#products-table tbody');
+        tbody.innerHTML = '';
+        (data['all products']||[]).forEach(p => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${p.id}</td>
+            <td>${p.name}</td>
+            <td>${p.description}</td>
+            <td>${p.price}</td>
+            <td>${p.quantity}</td>
+            <td>
+              <button onclick='editProduct(${p.id})'>Edit</button>
+              <button onclick='delProduct(${p.id})'>Delete</button>
+            </td>`;
+          tbody.appendChild(tr);
+        });
+      }
+
+      function resetForm(){
+        document.getElementById('product-form').reset();
+        document.getElementById('p-id').disabled = false;
+      }
+
+      function editProduct(id){
+        const rows = document.querySelectorAll('#products-table tbody tr');
+        for(const r of rows){
+          if(+r.children[0].textContent === id){
+            document.getElementById('p-id').value = id; document.getElementById('p-id').disabled = true;
+            document.getElementById('p-name').value = r.children[1].textContent;
+            document.getElementById('p-desc').value = r.children[2].textContent;
+            document.getElementById('p-price').value = r.children[3].textContent;
+            document.getElementById('p-qty').value = r.children[4].textContent;
+            break;
+          }
+        }
+      }
+
+      async function delProduct(id){
+        if(!confirm('Delete product '+id+'?')) return;
+        const res = await fetch('/products/'+id, {method:'DELETE'});
+        if(res.status === 204) loadProducts(); else alert('Delete failed');
+      }
+
+      async function submitForm(e){
+        e.preventDefault();
+        const id = Number(document.getElementById('p-id').value);
+        const body = {
+          id,
+          name: document.getElementById('p-name').value,
+          description: document.getElementById('p-desc').value,
+          price: Number(document.getElementById('p-price').value),
+          quantity: Number(document.getElementById('p-qty').value),
+        };
+        const disabled = document.getElementById('p-id').disabled;
+        const url = '/products' + (disabled ? '/' + id : '');
+        const method = disabled ? 'PUT' : 'POST';
+        const res = await fetch(url, {method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+        if(res.ok) { resetForm(); loadProducts(); } else { const txt = await res.text(); alert('Error: '+res.status+' '+txt); }
+      }
+
+      // initial load
+      loadProducts();
+    </script>
+  </body>
+</html>
