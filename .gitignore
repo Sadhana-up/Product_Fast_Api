@@ -2,6 +2,8 @@
 __pycache__/
 *.pyc
 
+#test cache
+.pytest_cache/
 # Virtual environment
 .venv/
 
@@ -11,3 +13,6 @@ __pycache__/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Environment variables
+.env
