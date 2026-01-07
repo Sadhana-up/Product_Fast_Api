@@ -16,3 +16,5 @@ Thumbs.db
 
 # Environment variables
 .env
+
+.ruff_cache/
