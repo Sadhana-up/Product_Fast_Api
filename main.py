@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from models import Product
-from database import session, engine
-import database_models
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 
 app = FastAPI()
@@ -50,10 +51,44 @@ def update_product(product_id: int, updated_product: Product):
     return None
 
 
-@app.delete("/products/{product_id}")
-def delete_product(product_id: int):
-    for index, product in enumerate(products):
-        if product.id == product_id:
-            deleted_product = products.pop(index)
-            return deleted_product
-    return None
+@app.get("/whoami")
+def whoami():
+    import multiprocessing
+    return {
+        "pid": os.getpid(),
+        "ppid": os.getppid(),  # Parent process ID
+        "worker_name": multiprocessing.current_process().name,
+        "is_main": multiprocessing.current_process().name == "MainProcess"
+    }
+
+if __name__ == "__main__":
+    import uvicorn
+    
+    HOST = os.getenv("HOST", "0.0.0.0")
+    PORT = int(os.getenv("PORT", 8000))
+    DEBUG = os.getenv("DEBUG", "False").lower() == "true"  # Convertin to python BOOL
+    ENVIRONMENT = os.getenv("ENVIRONMENT", "DEV").upper()  
+    
+    
+    if ENVIRONMENT == "PROD":
+        WORKERS = int(os.getenv("WORKERS", 1))  
+        print(f"Starting in PROD mode with {WORKERS} workers")
+        
+        uvicorn.run(
+            "main:app",  
+            host=HOST,
+            port=PORT,
+            workers=WORKERS,    
+            log_level="info",
+            access_log=True
+        )
+    else:
+        uvicorn.run(
+            "main:app",  
+            host=HOST,
+            port=PORT,
+            reload=True,  
+            log_level="debug",
+            access_log=True,
+            use_colors=True
+        )
